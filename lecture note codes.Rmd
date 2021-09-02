@@ -1,0 +1,539 @@
+
+
+```{r}
+plot(decompose(AirPassengers, type = "multiplicative"))
+class(AirPassengers)
+plot(AirPassengers)
+
+```
+
+```{r}
+beerprod <- scan("/Users/ansonleung/Desktop/Applied Financial Engineering/Financial Times Series Analysis/Lecture 1/R Code/beerprod.dat")
+beerprod = ts(beerprod, freq = 4)
+plot(stl(beerprod, "periodic"))
+```
+```{r}
+
+trendpattern = filter(beerprod, filter = c(1/8, 1/4, 1/4, 1/4, 1/8), sides=2)
+plot(beerprod, type= "b", main = "moving average annual trend")
+lines(trendpattern)
+```
+```{r}
+seasonals = beerprod - trendpattern
+plot(seasonals, type = "b", main = "Seasonal pattern for beer production")
+
+```
+```{r}
+trendpattern2 = filter(beerprod, filter = c(1/4, 1/4, 1/4, 1/4), sides=1)
+plot(beerprod, type= "b", main = "moving average annual trend")
+lines(trendpattern2)
+```
+```{r}
+
+options(digits = 9)
+data(bmw, package = "evir")
+Box.test(bmw, lag = 5, type = "Ljung-Box")
+
+
+```
+```{r}
+arima(x=bmw, order=c(1,0,0))
+
+fitAR1 = arima(bmw, order = c(1,0,0))
+Box.test(residuals(fitAR1), lag = 10, type = "Ljung-Box", fitdf = 1)
+
+
+Box.test(residuals(fitAR1), lag = 15, type = "Ljung-Box", fitdf = 1)
+Box.test(residuals(fitAR1), lag = 20, type = "Ljung-Box", fitdf = 1)
+```
+
+```{r}
+data(Mishkin, package = "Ecdat")
+
+x = as.ts(Mishkin[,1], start=1950, frequency=12)
+acf(x)
+pacf(x)
+
+```
+```{r}
+library(forecast)
+
+auto.arima(diff(x), max.p=20, max.q=0,ic="aic")
+auto.arima(diff(x), max.p=10, max.q=0,ic="bic")
+```
+
+```{r}
+data(Mishkin, package = "Ecdat")
+
+y = as.vector(Mishkin[,1])
+fitMA3 = arima(diff(y), order = c(0,0,3))
+fitMA3 
+Box.test(fitMA3$residuals, lag = 5, type = "Ljung", fitdf = 3)
+Box.test(fitMA3$residuals, lag = 10, type = "Ljung", fitdf = 3)
+Box.test(fitMA3$residuals, lag = 15, type = "Ljung", fitdf = 3)
+Box.test(fitMA3$residuals, lag = 20, type = "Ljung", fitdf = 3)
+
+fitMA2 = arima(diff(y), order = c(0,0,2))
+fitMA2 
+Box.test(fitMA2$residuals, lag = 5, type = "Ljung", fitdf = 2)
+Box.test(fitMA2$residuals, lag = 10, type = "Ljung", fitdf = 2)
+Box.test(fitMA2$residuals, lag = 15, type = "Ljung", fitdf = 2)
+Box.test(fitMA2$residuals, lag = 20, type = "Ljung", fitdf = 2)
+```
+
+```{r}
+data(Capm, package = "Ecdat")
+y = as.ts(Capm[,1], start=1960-01, frequency=12)
+
+fitARMA1 = arima(y, order = c(1,0,1))
+fitARMA1
+
+
+acf(residuals(fitARMA1),lag.max=20,main="ARMA1")
+qqnorm(residuals(fitARMA1),main="ARMA1") ; qqline(residuals(fitARMA1))
+plot(residuals(fitARMA1))
+
+```
+
+```{r}
+polyroot(c(1,-1.229,+0.233))
+```
+
+```{r}
+data(Mishkin, package = 'Ecdat')
+y = as.vector(Mishkin[,1])
+
+adf.test(y)
+
+pp.test(y)
+
+kpss.test(y)
+```
+
+
+```{r}
+
+auto.arima(y, max.p=5, max.q = 5, ic='aic', trace = FALSE)
+auto.arima(y, max.p=5, max.q = 5, ic='bic', trace = FALSE)
+
+fitARIMA111= arima(y, c(1,1,1))
+par(mfrow=c(1,1))
+acf(fitARIMA111$resid)
+Box.test(fitARIMA111$resid, lag = 15, fitdf =2)
+```
+```{r}
+
+data(Hstarts, package="Ecdat") 
+x = ts(Hstarts[,1], start=1960, frequency=4)
+
+fit1 = arima(x, c(1,1,1), seasonal = list(order = c(1,1,1), period = 4))
+fit1
+fit2 = arima(x, c(1,1,1), seasonal = list(order = c(0,1,1), period = 4))
+fit2
+
+Box.test(residuals(fit2), type="Ljung-Box", lag = 10, fitdf=3)
+Box.test(residuals(fit1), type="Ljung-Box", lag = 10, fitdf=4)
+```
+
+
+```{r}
+
+library("fracdiff")
+library("longmemo")
+
+D = c(-.35, .35)
+
+set.seed("09201948")
+
+par(mfrow=c(length(D)+1,2))
+
+for (i in 1:length(D))
+{
+H = D[i] + 1/2
+x = simARMA0(2500,H)
+plot(x,main=toString(paste("d =", D[i])) )
+acf(x,main=toString(paste("d =", D[i])) )
+}
+
+d= .7-1
+H = d + 1/2
+y = simARMA0(2500,H)
+x = cumsum(y)
+plot(x,main="d = 0.7",type="l")
+acf(x,main="d = 0.7")
+```
+```{r}
+
+par(mfrow=c(1,2))
+acf(diffseries(x,.7),main =expression(paste(Delta^0.7, Y)))
+acf(diff(x),main = expression(paste(Delta, Y)))
+```
+
+```{r}
+n = 10500
+set.seed("2340")
+e = rnorm(n)
+a = e
+y = e
+sig2= 2^2
+omega = 1
+alpha =  0.08
+beta = 0.90
+phi = 0.8
+mu = 0.1
+
+for (t in 2:n)
+{
+a[t] = sqrt(sig2[t])*e[t]
+y[t] = mu + phi*(y[t-1]-mu) + a[t]
+sig2[t+1] = omega + alpha*a[t]^2 + beta*sig2[t]
+}
+
+pdf ("garcho3.pdf", width = 9, height = 6)
+#
+
+
+```
+
+
+```{r}
+par(mfrow=c(2,4))
+
+plot(e[10001:n], type="l",xlab="t", ylab = expression(epsilon), main="(a) white noise")
+
+plot(sqrt(sig2[10001:n]), type="l",xlab="t",ylab=expression(sigma[t]), main="(b) conditional std dev")
+plot(a[10001:n], type="l",xlab="t",ylab="a", main="(C) GARCH")
+plot(y[10001:n], type="l",xlab="t",ylab="y",main="(d) AR+GARCH")
+acf(a[10001:n], main="(e) GARCH")
+acf(a[10001:n]^2, main="(f) GARCH squared")
+acf(y[10001:n], main="(g) AR+GARCH")
+acf(y[10001:n]^2, main="(h) AR+GARCH squared")
+#
+graphics.off()
+```
+```{r}
+library(xts)
+library(fGarch)
+garchFit(formula = ~arma(1,0) + garch(1, 1), data = bmw, cond.dist = "norm")
+summary(garchFit(formula = ~arma(1, 0) + garch(1, 1), data = bmw, cond.dist = "norm"))
+```
+```{r}
+library(xts)
+library(rugarch)
+data(bmw, package="evir")
+arma.garch.norm = ugarchspec(mean.model=list(armaOrder=c(1,0)), variance.model=list(garchOrder=c(1,1)))
+bmw.garch.norm = ugarchfit(data=bmw, spec=arma.garch.norm)
+show(bmw.garch.norm)
+plot(bmw.garch.norm, which="all")
+par(mfrow = c(3,2))
+for(i in c(1,3,10,11,8,9)) 
+  plot(bmw.garch.norm, which=i)
+```
+
+```{r}
+library(MASS)
+bmw.garch.norm <- garchFit(formula = ~arma(1, 0) + garch(1, 1), data = bmw, cond.dist = "norm")
+e = residuals(bmw.garch.norm, standardize=TRUE)
+fitdistr(e,"t")
+n = length(e)
+grid = (1:n)/(n+1)
+qqplot(sort(as.numeric(e)), qt(grid,df=4), main="t-plot, df=4",xlab= "Standardized residual quantiles",ylab="t-quantiles")
+qqnorm(sort(as.numeric(e)));
+qqline(y, col = 2)
+```
+
+```{r}
+garchFit(formula = ~arma(1, 1) + garch(1, 1), data = bmw,
+cond.dist = "std")
+```
+```{r}
+ma2 <- arima.sim(n = 1000, list(ma = c(-0.2279, 0.2488)))
+par(mfrow=c(2,1))
+plot(ma2)
+acf(ma2)
+```
+```{r}
+ar1 <- arima.sim(n = 1000, list(ar = c(0.9))) 
+par(mfrow=c(2,1)) 
+plot(ar1) 
+acf(ar1)
+```
+```{r}
+ar5 <- arima.sim(n = 1000, list(ar = c(-0.2279, 0.2488, -0.5, 0.2, 0.6)))
+par(mfrow=c(2,1))
+plot(ar5)
+acf(ar5)
+```
+```{r}
+library(prophet) 
+library(TSstudio)
+
+model <- tbats(elecequip, use.box.cox = TRUE, use.damped.trend = F,start.p=2,max.p=2,start.q=1,max.q=1)
+plot(forecast(model, h=12))
+```
+```{r}
+library(fpp2)
+plot(elecequip)
+```
+```{r}
+
+data_points = 1000 
+X <- cumsum(rnorm(data_points, 0, 1)) 
+Y <- 2*X + 10 + rnorm(data_points, 0, 1)
+
+par(mfrow=c(2,2))
+plot(X, main="Time Series X")
+plot(diff(X), main="Time Series of First Differences of X") 
+plot(Y, main="Time Series Y") 
+plot(diff(Y), main="Time Series of First Differences of Y")
+
+```
+
+```{r}
+adf.test(X, k=1)
+adf.test(diff(X), k=0)
+
+adf.test(Y, k=1)
+adf.test(diff(Y), k=0)
+
+```
+
+```{r}
+lm(Y~X)
+
+```
+
+```{r}
+
+library(ggplot2) 
+data(economics) 
+lmMod <- lm(pce ~ pop, data=economics) 
+lmMod
+acf(lmMod$residuals) # highly autocorrelated from the picture.
+
+```
+```{r}
+
+lmtest::dwtest(lmMod)
+```
+
+```{r}
+scatter.smooth(x=cars$speed, y=cars$dist, main="Dist ~ Speed")
+
+linearMod <- lm(dist ~ speed, data=cars)
+linearMod
+```
+```{r}
+# Create Training and Test data - 
+set.seed(100) # setting seed to reproduce results of random sampling 
+trainingRowIndex <- sample(1:nrow(cars), 0.8*nrow(cars)) # row indices for training data 
+trainingData <- cars[trainingRowIndex, ] # model training data 
+testData <- cars[-trainingRowIndex, ] # test data
+
+```
+
+```{r}
+# Build the model on training data - 
+lmMod <- lm(dist ~ speed, data=trainingData) # build the model 
+distPred <- predict(lmMod, testData) # predict distance 
+actuals_preds <- data.frame(cbind(actuals=testData$dist, predicteds=distPred)) # make actuals_predicteds dataframe 
+
+mean((actuals_preds$predicteds - actuals_preds$actuals)^2)
+```
+
+```{r}
+library("ggplot2") 
+library("tidyverse")
+
+data(cars)
+head(cars)
+plot(cars)
+summary(cars)
+boxplot(cars)
+
+```
+
+```{r}
+
+cars.loess <- select(cars, speed, dist)
+cars.Train <- cars.loess[1:35,] 
+cars.Test <- cars.loess[36:50,]
+
+cars.LoessModel <- loess( dist ~ speed, cars.Train, control = loess.control(surface = "direct") )
+cars.LoessModel
+
+forwardSeq <- as.vector(cars.Test$speed)
+forwardSeq
+cars.Predicted <- predict(cars.LoessModel, data.frame(speed=forwardSeq), se=TRUE )
+cars.Predicted
+cars.Test$predicted_dist <- cars.Predicted$fit
+cars.Test
+```
+```{r}
+cars.TestPlot <- select(cars.Test, speed, predicted_dist) 
+cars.TestPlot <- rename(cars.TestPlot, dist = predicted_dist)
+
+ggplot(cars.Train, aes(x = speed, y = dist)) + geom_point() + 
+  geom_smooth(stat="smooth", position = "identity", method = "loess", formula = y ~ x, se = TRUE, na.rm = FALSE, inherit.aes = TRUE)+ geom_line(data = cars.TestPlot, aes(y=dist, x=speed, colour="#000099"), show.legend = FALSE, size = 2)
+```
+```{r}
+ggplot(cars.loess, aes(x = speed, y = dist)) + geom_point() + geom_smooth( stat="smooth", position = "identity", method = "loess", formula = y ~ x, se = TRUE, na.rm = FALSE, inherit.aes = TRUE ) + geom_line(data = cars.TestPlot, aes(y=dist, x=speed, colour="#000099"), show.legend = FALSE, size = 2)
+```
+```{r}
+
+## 70% of the sample size
+smp_size <- floor(0.70 * nrow(cars.loess))
+## set the seed to make your partition reproducible 
+set.seed(123) 
+train_ind <- sample(seq_len(nrow(cars.loess)), size = smp_size) 
+cars.Train <- cars.loess[train_ind, ] 
+cars.Test <- cars.loess[-train_ind, ]
+
+cars.LoessModel <- loess(dist ~ speed, cars.Train, control = loess.control(surface = "direct"))
+forwardSeq <- as.vector(cars.Test$speed)
+cars.Predicted <- predict(cars.LoessModel, data.frame(speed=forwardSeq), se=TRUE) 
+cars.Test$predicted_dist <- cars.Predicted$fit 
+cars.TestPlot <- select(cars.Test, speed, predicted_dist) 
+cars.TestPlot <- rename(cars.TestPlot, dist = predicted_dist)
+
+ggplot(cars.loess, aes(x = speed, y = dist)) + geom_point() + geom_smooth( stat="smooth", position = "identity", method = "loess", formula = y ~ x, se = TRUE, na.rm = FALSE, inherit.aes = TRUE ) + geom_line(data = cars.TestPlot, aes(y=dist, x=speed, colour="#000099"), show.legend = FALSE, size = 2)
+
+```
+```{r}
+library(fpp2)
+plot(elecequip)
+elecequip
+library(forecast)
+par(mfrow=c(2,1))
+model <- naive(elecequip)
+plot(predict(model, n.ahead=24))
+model <- snaive(elecequip)
+plot(predict(model, n.ahead=24))
+
+```
+```{r}
+plot(stl(elecequip, t.window=13, s.window="periodic", robust=TRUE))
+par(mfrow=c(1,1))
+model <- stl(elecequip, t.window=13, s.window="periodic", robust=TRUE)
+plot(forecast(model, method = "naive", h=12))
+
+```
+```{r}
+plot(decompose(elecequip))
+```
+```{r}
+model <- ets(elecequip) 
+plot(forecast(model,h=12))
+```
+```{r}
+model <- auto.arima(elecequip) 
+model
+plot(forecast(model,h=12)) 
+forecast(arima(elecequip, order=c(4,0,1), seasonal = c(0,1,1)), h=12)
+
+```
+```{r}
+model <- tbats(elecequip, use.box.cox = TRUE, use.damped.trend = F,start.p=2,max.p=2,start.q=1,max.q=1)
+plot(forecast(model, h=12))
+```
+```{r}
+library(prophet) 
+library(TSstudio)
+df = ts_to_prophet(elecequip) 
+next_time_step = function(y, is_end = F){ 
+  if(is_end){ new_start = y }
+  else{ new_start = end(y) } 
+  if(new_start[2]==12){ 
+    new_start[1]=new_start[1]+1 new_start[2]=1 }else{ new_start[2]=new_start[2]+1 } return(new_start)}
+```
+
+
+```{r}
+
+library(Ecdat)
+data(Mishkin,package="Ecdat")
+y = as.ts(Mishkin[,1], start=1950, frequency=12)
+par(mfrow=c(2,1))
+plot(y,ylab="Inflation Rate",type="l", main="(a)")
+plot(diff(y),ylab="Change in Rate",type="l",main="(b)")
+
+```
+```{r}
+data(AirPassengers)
+par(mfrow=c(1,1))
+z = as.ts(AirPassengers, start=1949, frequency=12)
+plot(z, type="b", ylab="Passengers")
+
+```
+```{r}
+
+
+
+par(mfrow=c(2,1))
+acf(y, main="(a)")
+acf(diff(y), main="(b)")
+```
+
+```{r}
+Box.test(y, lag=10,type= "Ljung-Box")
+
+Box.test(diff(y), lag=10,type= "Ljung-Box")
+```
+
+```{r}
+
+data(bmw,package = "evir")
+
+Box.test(bmw, lag=5, type= "Ljung-Box")
+
+fitAR1 = arima(bmw,order = c(1,0,0))
+print(fitAR1)
+
+```
+
+```{r}
+Box.test(residuals(fitAR1), lag =5, type= "Ljung-Box", fitdf = 1)
+Box.test(residuals(fitAR1), lag =10, type= "Ljung-Box", fitdf = 1)
+
+
+```
+
+```{r}
+library(Ecdat)
+library(forecast)
+data(Mishkin,package="Ecdat")
+y = as.ts(Mishkin[,1], start=1950, frequency=12)
+timeseries = diff(y)
+
+fitArima = arima( timeseries, order=c(1,0,0))
+foreArima = predict(fitArima, n.ahead=8)
+plot(foreArima$pred)
+
+fitAutoArima = auto.arima(timeseries)
+foreAutoArima = forecast(fitAutoArima,h=8)
+plot(foreAutoArima,xlim=c(1990.5,1992))
+```
+```{r}
+# Loading in the Hstarts data from Ecdat package
+data(Hstarts, package="Ecdat")
+# Extracting our time series
+x = ts(Hstarts[,1], start=1960, frequency=4)
+x
+# Fit into an 𝐴𝑅𝐼𝑀𝐴(1 1 1)𝑥( 1 1)4 model
+fit1 = arima(x, c(1,1,1), seasonal = list(order = c(1,1,1), period = 4))
+
+Box.test(residuals$fit1, type="Ljung-Box", lag = 10, fitdf=4)
+
+```
+
+```{r}
+library(xts)
+library(fGarch)
+data(bmw, package = "evir")
+model <- garchFit(formula = ~arma(1, 1) + garch(1, 1), data = bmw, cond.dist = "std")
+```
+```{r}
+acf(residuals(model), main="ACF of (a_t)")
+acf(residuals(model)^2, main="ACF of (a_t)^2")
+```
+

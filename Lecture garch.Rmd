@@ -1,0 +1,95 @@
+
+
+```{r}
+library(quantmod)
+library(forecast)
+WYNN <- getSymbols("1128.HK", src = "yahoo", auto.assign=FALSE)
+head(WYNN)
+```
+
+
+```{r}
+priceTimeSeries <- WYNN$'1128.HK.Adjusted'
+priceTimeSeries <- priceTimeSeries[complete.cases(priceTimeSeries),]
+priceTimeSeries
+model1 <- auto.arima(priceTimeSeries, ic="aic")
+model1
+
+forecast_model = forecast(model1, h=8)
+
+plot(forecast_model, xlim = c(2800, 2874))
+
+plot(diff(priceTimeSeries))
+plot(diff(log(priceTimeSeries)))
+
+
+
+```
+
+
+```{r}
+
+library(fGarch)
+logReturn <- diff(log(priceTimeSeries))
+logReturn <- logReturn[-1]
+model1 <- garchFit(formula = ~arma(1, 1) + garch(1, 1), data = logReturn)
+model1@fit$ics[1] # This is AIC
+model1@fit$ics[2] # This is BIC
+
+model1 <- garchFit(formula = ~arma(1, 0) + garch(1, 1), data = logReturn)
+model1@fit$ics[1] # This is AIC
+model1@fit$ics[2] # This is BIC
+
+model1 <- garchFit(formula = ~arma(0, 1) + garch(1, 1), data = logReturn)
+model1@fit$ics[1] # This is AIC
+model1@fit$ics[2] # This is BIC
+
+model1 <- garchFit(formula = ~arma(1, 0) + garch(1, 1), data = logReturn)
+model1@fit$ics[1] # This is AIC
+model1@fit$ics[2] # This is BIC
+
+```
+
+```{r}
+
+library(fGarch)
+logReturn <- diff(log(priceTimeSeries))
+logReturn <- logReturn[-1]
+model1 <- garchFit(formula = ~arma(1, 1) + garch(1, 1), data = logReturn)
+model1@fit$ics[1] # This is AIC
+model1@fit$ics[2] # This is BIC
+
+
+```
+
+
+
+```{r}
+
+resultsdiff <- matrix(0, nrow=20, ncol=4)
+table_index <- 1
+for (i in 1:4){
+  for (j in 1:5){
+    model1 <- garchFit(substitute(~arma(p, 1) + garch(q, 1), list(p=i, q=j)), data = logReturn)
+    resultsdiff[table_index,1] = i
+    resultsdiff[table_index,2] = j
+    resultsdiff[table_index,3] = model1@fit$ics[1] # This is AIC
+    resultsdiff[table_index,4] = model1@fit$ics[2] # This is BIC
+    table_index <- table_index + 1
+  }
+}
+
+
+```
+```{r}
+
+
+resultsdiff <- as.data.frame(resultsdiff)
+colnames(resultsdiff) <- c('P', 'Q', 'AIC', 'BIC')
+resultsdiff[which.min(resultsdiff$AIC),]
+
+
+
+```
+
+

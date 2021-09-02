@@ -1,0 +1,82 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
+```{r}
+
+data(Tbrate,package="Ecdat")
+library(tseries)
+# r = the 91-day treasury bill rate
+# y = the log of real GDP
+# pi = the inflation rate
+Tbrate
+plot(Tbrate)
+acf(Tbrate)
+adf.test(Tbrate[,1])
+adf.test(Tbrate[,2])
+adf.test(Tbrate[,3])
+
+
+```
+
+```{r}
+diff_rate = diff(Tbrate)
+adf.test(diff_rate[,1])
+adf.test(diff_rate[,2])
+adf.test(diff_rate[,3])
+pairs(diff_rate) # scatterplot matrix
+plot(diff_rate) # time series plots
+```
+```{r}
+
+acf(diff_rate) # auto- and cross-correlations
+
+
+
+```
+```{r}
+library(Ecdat)
+data(CRSPday)
+crsp=CRSPday[,7]
+acf(crsp)
+acf(as.numeric(crsp))
+```
+```{r}
+
+
+arima(crsp,order=c(1,0,0))
+arima(crsp,order=c(2,0,0))
+
+
+```
+
+
+```{r}
+set.seed(111)
+e = rnorm(1000, sd=sqrt(1.2))
+y = e
+for (t in 2:1000){
+y[t] = 5-0.55*y[t-1]+e[t]
+}
+
+```
+
+
+```{r}
+adf.test(y)
+mean(y)
+var(y)
+acf(y)
+```
+

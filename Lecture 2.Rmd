@@ -1,0 +1,101 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r}
+input_data <- readLines("/Users/ansonleung/Desktop/Applied Financial Engineering/Financial Times Series Analysis/Lecture 1/R Code/eriedata.dat")
+input_data <- strsplit(input_data, "\\s+")
+input_data <- unlist(input_data)
+input_data <- as.numeric(input_data)
+
+plot(input_data, type = "l")
+
+par(mfrow = c(2,1))
+acf(input_data)
+pacf(input_data)
+
+ar1_model <- arima(input_data, order = c(1, 0, 0))
+
+print(ar1_model)
+
+mean(input_data)
+
+```
+
+
+
+```{r}
+
+library(zoo)
+par(mfrow = c(1,1))
+plot(lag(zoo(input_data),1, na.pad = TRUE), input_data)
+
+lagpad <- function(x, k) {
+  if (k>0) {
+    return (c(rep(NA, k), x)[1 : length(x)] );
+  }
+  else {
+    return (c(x[(-k+1) : length(x)], rep(NA, -k)));
+  }
+}
+
+plot(lagpad(input_data, 1), input_data)
+
+
+lm(input_data ~ lagpad(input_data, 1))
+
+
+
+```
+
+
+
+
+```{r}
+beerprod <- scan("/Users/ansonleung/Desktop/Applied Financial Engineering/Financial Times Series Analysis/Lecture 1/R Code/beerprod.dat")
+plot(beerprod, type="l")
+beerprod = ts(beerprod, freq = 4)
+decompbeer = decompose(beerprod, type = "additive")
+plot(decompbeer)
+decompbeer
+
+
+beer_df = data.frame(date=time(beerprod), beer=as.matrix(beerprod))
+fit <- loess(beer ~ date, data = beer_df)
+plot(cbind(observed=beer_df$beer, trend = fit$fitted, random=fit$residuals), main="")
+
+
+plot(beer_df$beer, type = "l")
+lines(fit$fitted)
+
+
+
+```
+```{r}
+
+plot(beerprod)
+lines(lowess(beerprod))
+
+```
+
+```{r}
+beerprod <- scan("/Users/ansonleung/Desktop/Applied Financial Engineering/Financial Times Series Analysis/Lecture 1/R Code/beerprod.dat")
+trendpattern = filter (beerprod, filter = c(1/8, 1/4, 1/4, 1/4, 1/8), sides=2)
+plot (beerprod, type= "b", main = "moving average annual trend")
+lines(trendpattern)
+
+seasonals = beerprod - trendpattern
+plot (seasonals, type = "b", main = "Seasonal pattern for beer production")
+
+
+trendpattern2 = filter(beerprod, filter = c(1/4, 1/4, 1/4, 1/4), sides=1)
+plot(beerprod, type= "b", main = "moving average annual trend")
+lines(trendpattern2)
+
+
+
+```
+
+

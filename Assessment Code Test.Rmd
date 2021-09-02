@@ -1,0 +1,359 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+Time Series Assignment
+
+Q1
+a. What’s the difference between time series modeling and regression analysis? 
+Time series enable us to look at relationships over time to identify trends, but linear regression does not show the elapsed time factor. In linear regression, the data might not be necessarily independent and is not necessarily identically distributed. For time series, it’s a list of observations where the ordering will affect the result of the outcome. The ordering is very important as there is dependency and changing the order will change the correlation. 
+
+b. What’s the difference between decompose and stl? 
+
+STL is a more advanced technique to extract seasonality, in the sense that is allows seasonality to vary, which is not the case in decompose. The stl command does an additive decomposition in which a Lowess smoother is used to estimate the trend and the seasonal effects. The decompose command only does the seasonal effects but not the trend effects.  The decompose command assumes seasonal component repeats from year to year, but stl command can capture the varying effect in the seasonality.
+
+c. How do we find the seasonality of a time series? 
+
+We will use the method of Seasonal Decomposition to find out the seasonal patterns. If data shows some seasonality (e.g. daily, weekly, quarterly, yearly) it may be useful to decompose the original time series into the sum of three components, including the seasonal component S(t), the trend-cycle component T(t), and the remainder component R(t).  The classical decomposition estimates trend T(t) through a rolling mean and computes S(t) as the average detrended series to get the seasonality factor. 
+
+d. What are the benefits of TBATS over ARIMA? 
+
+The TBATS forecasting model based on exponential smoothing. The main feature of TBATS model is its capability to deal with multiple seasonalities by modelling each seasonality with a trigonometric representation based on Fourier series. The ARIMA model assume only one seasonality factor and cannot identity multiple seasonalities. The TBATS has advantages in providing more accurate results in forecasting data with multiple seasonlities that have different patterns.
+
+e. Describe 2 time series models 
+
+Exponential Smoothing is used for smoothing time series data using the exponential windon function. The forecast gives a weighted average of the past observations and exponential functions are used to assign exponentially decreasing weights over time. 
+
+Vector autoregression (VAR) is a used to capture the relationship between multiple quantities as they change over time. The Var model generalizes the univariate autoregressive model by allowing for multivariate time series. 
+
+
+Q2
+a)
+From the graph, we can tell that consumption is a non-stationarity graph with an upward trend. It increases over the time when the time passes and could possibly have a seasonal oscillation characteristics (Increasing in a few years and then follows by a decrease)
+
+As a result I will recommend to take seasonal non-stationarity differences so diff(consumption, 4) is taken into considerations.
+
+As consumption data is a curved upward trend accompanied by increasing variance, I will also recommend to transform the series with logarithm. As a result, a log transformation is needed. 
+
+The diff(consumption,4) gives the best ACF plot, the early lags of the acf values all fall within the error range. 
+```{r}
+library("Ecdat")
+data(IncomeUK)
+consumption = IncomeUK[,2]
+y = log(consumption)
+plot(consumption)
+
+par(mfrow=c(4,1))
+plot(y, main = "Plotting the Original Graph")
+plot(diff(y), main = "Differencing out Non-Seasonal Non-Stationarity")
+plot(diff(y,4), main = "Differencing out Seasonal Non-Stationarity")
+plot(diff(diff(y),4), main = "Differencing out Seasonal+Non-Seasonal Non-Stationarity")
+
+par(mfrow=c(1,1))
+plot(y, main = "Plotting the Original Graph")
+plot(diff(y), main = "Differencing out Non-Seasonal Non-Stationarity")
+plot(diff(y,4), main = "Differencing out Seasonal Non-Stationarity")
+plot(diff(diff(y),4), main = "Differencing out Seasonal+Non-Seasonal Non-Stationarity")
+
+```
+
+```{r}
+par(mfrow=c(4,1))
+acf(y, main = "Plotting the Original Graph")
+acf(diff(y), main = "Differencing out Non-Seasonal Non-Stationarity")
+acf(diff(y,4), main = "Differencing out Seasonal Non-Stationarity")
+acf(diff(diff(y),4), main = "Differencing out Seasonal+Non-Seasonal Non-Stationarity")
+
+par(mfrow=c(1,1))
+
+acf(y, main = "Plotting the Original Graph")
+acf(diff(y), main = "Differencing out Non-Seasonal Non-Stationarity")
+acf(diff(y,4), main = "Differencing out Seasonal Non-Stationarity")
+acf(diff(diff(y),4), main = "Differencing out Seasonal+Non-Seasonal Non-Stationarity")
+```
+b)
+
+Given the the previous acf graphs, we will use ARIMA(0,1,1)(0,1,1)[4] model with non-seasonal order c(0,1,1) and seasonal components c(0,1,1).
+```{r}
+
+fit1 = arima(y, c(0,1,1),seasonal = list(order =c(0,1,1), period = 4))
+fit1
+
+
+```
+
+c)
+When we conduct the the residual check, we find out the acf graph shows no autocorrelations after the first period. When we conduct the Ljung-Box Test, it shows a p-value of 0.659556.
+
+```{r}
+acf(residuals(fit1))
+
+Box.test(residuals(fit1), type="Ljung-Box", lag = 10, fitdf=4)
+
+```
+
+
+d)
+The model selected is ARIMA(0,1,0)(0,1,1)[4] using BIC.
+```{r}
+library(forecast)
+autofit = auto.arima(y,ic = 'bic')
+autofit
+acf(residuals(autofit))
+Box.test(residuals(autofit), lag = 10, fitdf =2)
+```
+
+
+
+
+e)
+```{r}
+fitAutoArima = auto.arima(log(consumption),ic="bic")
+foreAutoArima = forecast(fitAutoArima,h=8)
+
+
+fit <- arima(log(consumption), order = c(0,1,1),seasonal = list(order = c(0,1,1)))
+fit = predict(fit, n.ahead = 8)
+
+par(mfrow=c(2,1))
+plot(foreAutoArima,xlim=c(1985.5,1987.5),ylim=c(10.86,11))
+plot(fit$pred,xlim=c(1985.5,1987.5),ylim=c(10.86,11), main = "Forecast from Question b ARIMA(0,1,1)(0,1,1)[4]")
+```
+
+
+
+Q3
+a) Since the data is a upward trend so a logrithm transformation is required. 
+```{r}
+# Monthly one-month T-bill rates 
+library(Ecdat)
+data(Mishkin)
+tb1 = log(Mishkin[,3])
+plot(tb1)
+
+acf(tb1)
+
+plot(diff(tb1))
+
+acf(diff(tb1))
+
+```
+
+```{r}
+arima(tb1,order = c(1,0,0))
+arima(tb1,order = c(3,0,0))
+arima(diff(tb1),order = c(1,0,0))
+
+```
+
+b)
+
+Since we are searching for non-seasonal model, we set both max.P = 0,max.Q = 0 comparing aic and bic. We find out using aic is a better measurement(ARIMA(3,1,5)) . Seems using aic will produce a better model with less autocorrelation on the acf graph.  
+```{r}
+
+fitaic = auto.arima(tb1, max.P = 0,max.Q=0, ic = "aic")
+fitaic
+fitbic = auto.arima(tb1, max.P = 0,max.Q=0, ic = "bic")
+fitbic
+acf(residuals(fitaic), main="Using aic")
+acf(residuals(fitbic),main="Using bic")
+
+```
+
+
+c)
+There is little autocorrelation using fitaic using acf graph. 
+```{r}
+fitaic = auto.arima(tb1, max.P = 0,max.Q=0, ic = "aic")
+fitaic
+acf(residuals(fitaic))
+Box.test(residuals(fitaic), lag = 10, fitdf =5)
+```
+
+d)
+Allowing seasonal variations, seems both getting similar results using acf graph. But when using Ljung Box test, using bic will be slightly better. 
+```{r}
+
+
+tb1aic = auto.arima(tb1, ic = "aic")
+tb1aic
+tb1bic = auto.arima(tb1, ic = "bic")
+tb1bic
+```
+
+```{r}
+acf(residuals(tb1aic))
+acf(residuals(tb1bic))
+Box.test(residuals(tb1aic), lag = 12, fitdf =2)
+Box.test(residuals(tb1bic), lag = 12, fitdf =2)
+```
+
+
+4
+a)
+Using Garch Model AR(1)/GARCH(1,1) to look at the changes on the interest rate, which allows the white noise to have a non-Gaussian distribution.
+
+```{r}
+library(fGarch)
+library(Ecdat)
+data(Irates)
+r = as.numeric(log(Irates[,2]))
+n = length(r)
+lagr = r[1:(n-1)]
+diffr = r[2:n] - lagr
+```
+
+
+b) the parameters are as follows:
+
+```{r}
+
+irates.garch.std = garchFit(~arma(1,0)+garch(1,1),data=diffr, cond.dist = "std")
+irates.garch.std
+```
+```{r}
+acf(residuals(irates.garch.std), main="ACF of (a_t)")
+acf(residuals(irates.garch.std)^2, main="ACF of (a_t)^2")
+```
+
+
+
+For getting the graphs
+```{r}
+library(xts)
+plot(irates.garch.std, which="all")
+par(mfrow = c(3,2))
+for(i in c(1,2,4,5,10,11))
+  plot(irates.garch.std,
+which=i)
+```
+
+c) Plot the ACF of Δrt
+```{r}
+par(mfrow = c(1,1))
+for(i in c(1))
+  plot(irates.garch.std,
+which=i)
+```
+
+d) Plot the ACF of at
+```{r}
+par(mfrow = c(1,1))
+for(i in c(4))
+  plot(irates.garch.std,
+which=i)
+```
+
+
+e)Plot the ACF of at2
+```{r}
+par(mfrow = c(1,1))
+for(i in c(5))
+  plot(irates.garch.std,
+which=i)
+```
+
+
+Q5.
+
+Getting the stock data HSBC 0005.HK from 2011-01-01 to 2021-07-30 and taking adjusted close price daily. 
+```{r}
+
+require(quantmod)
+Sys.setenv(TZ = "UTC")
+
+start_date <- "2011-01-01"
+end_date <- "2021-07-30"
+
+symbols <- c("0005.HK")
+#download the prices
+getSymbols(Symbols=symbols, src = "yahoo", index.class = "POSIXct",
+           from = start_date, 
+           to = end_date)
+stock<-get(symbols[1])[,6]
+
+plot(stock)
+priceTimeSeries =  stock$'0005.HK.Adjusted'
+priceTimeSeries = priceTimeSeries[complete.cases(priceTimeSeries),]
+stock = priceTimeSeries
+```
+
+
+taking log transformation and look at the acf graph for original and log transform data
+```{r}
+logstock = log(stock) #take log of the data
+
+acf(logstock)
+pacf(logstock)
+acf(diff(logstock)[-1,])
+pacf(diff(logstock)[-1,])
+
+```
+
+Using au.arima to get the best fitting model ARIMA(0,1,0) and conduct forcast on the future stock price
+```{r}
+
+
+model1 <- auto.arima(stock)
+model1
+
+forecast_model = forecast(model1, h=200)
+forecast_model
+plot(forecast_model, ylim=c(0,80))
+
+acf(residuals(model1))
+
+
+Box.test(residuals(model1), lag = 5, type = "Ljung", fitdf = 3)
+
+```
+Using garch model to fit for the parameter
+```{r}
+
+library(fGarch)
+logstock = diff(log(stock))
+logstock =logstock[-1,]
+model1 <- garchFit(formula = ~arma(0, 1) + garch(1, 1), data = logstock)
+model1@fit$ics[1] # AIC
+model1@fit$ics[2] # BIC
+
+```
+
+```{r}
+resultsdiff <- matrix(0, nrow=20, ncol=4)
+table_index <- 1
+for (i in 1:4){
+  for (j in 1:5){
+    model1 <- garchFit(substitute(~arma(p, 1) + garch(q, 1), list(p=i, q=j)), data = logstock)
+    resultsdiff[table_index,1] = i
+    resultsdiff[table_index,2] = j
+    resultsdiff[table_index,3] = model1@fit$ics[1] # This is AIC
+    resultsdiff[table_index,4] = model1@fit$ics[2] # This is BIC
+    table_index <- table_index + 1
+  }
+}
+
+resultsdiff <- as.data.frame(resultsdiff)
+colnames(resultsdiff) <- c('P', 'Q', 'AIC', 'BIC')
+
+resultsdiff[which.min(resultsdiff$AIC),]
+```
+
+
+using naive & snaive model to get the stock forestcast
+```{r}
+library(fpp2)
+library(forecast)
+plot(stock)
+stockvec =as.vector(stock)
+par(mfrow=c(2,1))
+model = naive(stockvec)
+plot(predict(model, n.ahead=24), xlim=c(2580,2630))
+model = snaive(stockvec)
+plot(predict(model, n.ahead=24), xlim=c(2580,2630))
+```
+
+
+
+

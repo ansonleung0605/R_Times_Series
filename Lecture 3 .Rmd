@@ -1,0 +1,274 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
+K-mean
+```{r}
+head(iris)
+plot(iris[,3:4])
+
+irisCluster <- kmeans(iris[, 3:4], 3, nstart = 20)
+irisCluster$cluster <- as.factor(irisCluster$cluster)
+library(ggplot2)
+
+ggplot(iris, aes(Petal.Length, Petal.Width, col = irisCluster$cluster, fill=Species)) + 
+  stat_ellipse(geom = "polygon", col = "black", alpha = 0.5) +
+  geom_point()
+
+k.max <- 15
+wss <- sapply(1:k.max, function(k){kmeans(iris[, 3:4], k, nstart=50, iter.max = 15)$tot.withinss})
+
+plot(1:k.max, wss,
+     type="b", pch = 19, frame = FALSE, 
+     xlab="Number of clusters K",
+     ylab="Total within-clusters sum of squares")
+
+```
+
+
+
+Periodogram
+```{r}
+counter <- 500
+x <- seq(counter)
+
+y <- 2 * cos(2 * pi * (1/50) * x + 0.6 * pi)
+signal <- y + rnorm(counter)
+plot(x, y, type = "l")
+
+plot(x, signal, type = "l")
+```
+```{r}
+sunspots <- scan("/Users/ansonleung/Desktop/Applied Financial Engineering/Financial Times Series Analysis/Lecture 3/sunspots.dat")
+plot(sunspots, type="b")
+x = diff(sunspots)
+
+I = abs(fft(x)/sqrt(458))^2
+P = (4/458)*I[1:230]
+
+freq = (0:229)/458
+
+plot(freq, P, type="l")
+```
+
+
+
+```{r}
+
+library(astsa)
+
+x <- scan("/Users/ansonleung/Desktop/Applied Financial Engineering/Financial Times Series Analysis/Lecture 3/recruit.dat")
+mvspec(x, log="no")
+
+k = kernel("daniell", 4)
+mvspec(x, k, log="no")
+
+k = kernel("daniell", c(4,4)) 
+mvspec(x, k, log="no")
+
+
+specvalues = mvspec(x, k, log="no")
+specvalues$details
+
+```
+
+Cluster analysis
+```{r}
+
+mydata <- read.csv("/Users/ansonleung/Desktop/Applied Financial Engineering/Financial Times Series Analysis/Lecture 3/utilities.csv")
+head(mydata)
+
+str(mydata)
+pairs(mydata[,-c(1,1)])
+
+plot(mydata$Fuel_Cost~ mydata$Sales, data = mydata)
+
+with(mydata,
+     text(mydata$Fuel_Cost ~ mydata$Sales, labels=mydata$Company,pos=4, cex = 0.4)
+     )
+
+z = mydata[,-c(1,1)]
+
+means = apply(z,2,mean)
+sds = apply(z,2,sd)
+nor = scale(z,center=means,scale=sds)
+
+distance = dist(nor)
+
+print(distance, digits = 3)
+
+mydata.hclust = hclust(distance)
+plot(mydata.hclust)
+
+plot(mydata.hclust,labels=mydata$Company,main='Default from hclust')
+
+plot(mydata.hclust,hang=-1)
+
+member = cutree(mydata.hclust,3)
+
+table(member)
+
+aggregate(nor,list(member),mean)
+
+
+aggregate(mydata[,-c(1,1)],list(member),mean)
+
+
+wss <- (nrow(nor)-1)*sum(apply(nor,2,var))
+for (i in 2:20) wss[i] <- sum(kmeans(nor, centers=i)$withinss)
+plot(1:20, wss, type="b", xlab="Number of Clusters", ylab="Within groups sum of squares")
+
+kc <- kmeans(z,3)
+plot(Sales~D.Demand, mydata, col = kc$cluster)
+
+```
+
+fractional R: Fractional Differences:
+```{r}
+varve = scan("/Users/ansonleung/Desktop/Applied Financial Engineering/Financial Times Series Analysis/Lecture 3/varve.dat")
+varve = ts(varve)
+
+library(arfima)
+
+y = log(varve) - mean(log(varve))
+
+acf(y)
+
+varvefd = arfima(y)
+
+d = summary(varvefd)$coef[[1]][1]
+
+resids = resid(varvefd)[[1]] 
+
+plot.ts(resids)
+acf(resids)
+```
+
+Looping through p and q
+```{r}
+
+data(Mishkin,package="Ecdat")
+
+x <- diff(as.vector(Mishkin[,1]))
+
+plot(x, type = 'l')
+
+result <- matrix(0, nrow=9, ncol=4)
+idx <- 1
+
+for (i in 0:2)
+{
+  for (j in 0:2){
+    fit = arima(x,order=c(i,0,j))
+    result[idx, 1] = i
+    result[idx, 2] = j
+    result[idx, 3] = fit$aic
+    result[idx, 4] = result[idx,3] + (log(length(x))-2)*i
+    idx = idx + 1
+    }
+}
+result <- data.frame(result)
+names(result) <- c('p', 'q', 'AIC', 'BIC')
+result
+```
+
+
+tar model
+```{r}
+
+flu = scan("/Users/ansonleung/Desktop/Applied Financial Engineering/Financial Times Series Analysis/Lecture 3/flu.dat")
+flu = ts(flu)
+
+plot(flu,type="b")
+
+y = diff(flu,1)
+plot(y,type="b")
+
+model = ts.intersect(y, lag1y=lag(y,-1), lag2y=lag(y, -2), lag3y=lag(y,-3), lag4y=lag(y, -4))
+
+x = model[,1]
+P = model[,2:5]
+c = 0.05 ## Threshold value
+
+less = (P[,1]<c)
+x1 = x[less]
+P1 = P[less,]
+out1 = lm(x1~P1[,1]+P1[,2]+P1[,3]+P1[,4])
+summary(out1)
+
+greater = (P[,1]>=c)
+x2 = x[greater]
+P2 = P[greater,]
+out2 = lm(x2~P2[,1]+P2[,2]+P2[,3]+P2[,4])
+summary(out2)
+
+res1 = residuals(out1)
+res2 = residuals(out2)
+less[less==1] = res1
+greater[greater==1] = res2
+resid = less + greater
+acf(resid)
+
+less = (P[,1]<c)
+greater = (P[,1]>=c)
+fit1 = predict(out1)
+fit2 = predict(out2)
+less[less==1]= fit1
+greater[greater==1] = fit2
+fit = less + greater
+plot(y, type="o")
+lines(fit, col = "red", lty="dashed")
+
+
+```
+
+
+```{r}
+
+
+library(tsDyn)
+dflu = diff(flu,1)
+flu.tar4.05 = setar(dflu, m=4, thDelay=0, th=.05)
+summary(flu.tar4.05)
+
+plot(flu.tar4.05)
+
+```
+
+
+```{r}
+flu.tar4 = setar(dflu, m=4, thDelay=0)
+summary(flu.tar4)
+plot(flu.tar4)
+```
+
+```{r}
+
+
+
+```
+
+
+```{r}
+
+
+
+
+
+```
+
+
+
+
